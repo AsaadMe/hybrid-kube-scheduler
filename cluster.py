@@ -2,8 +2,8 @@ from kubernetes import client, config
 from kubernetes.stream import stream
 
 from collections import defaultdict
+import os.path
 import random
-import time
 import json
 import yaml
 
@@ -13,16 +13,17 @@ except:
     config.load_kube_config()
     
 class Node:
-    def __init__(self, id, name, spec_cpu, spec_mem, inuse_cpu=0, inuse_mem=0):
+    def __init__(self, id, name, spec_cpu, spec_mem, bitrate, inuse_cpu=0, inuse_mem=0):
         self.id = id
         self.name = name
         self.spec_cpu = spec_cpu
         self.spec_mem = spec_mem
+        self.bitrate = bitrate # bitrate to master
         self.inuse_cpu = inuse_cpu    
         self.inuse_mem = inuse_mem
     
     def __repr__(self) -> str:
-        return f"Node(ID: {self.id}, Spec: <{self.spec_cpu}, {self.spec_mem}>)"
+        return f"Node(Name: <{self.id}:{self.name}>, Spec: <{self.spec_cpu}, {self.spec_mem:.2f}, {self.bitrate:.2f}>)"
         
     def get_rem_cpu(self):
         return self.spec_cpu - self.inuse_cpu
@@ -46,8 +47,10 @@ def get_all_simul_nodes():
     nodes = []
     possible_cpu = range(1,9)
     possible_mem = [1000, 2000, 4000, 8000, 10000, 12000]
+    possible_bitrate = [2, 5, 10, 15, 20, 30, 35]
     for i in range(1,6):
-        nodes.append(Node("n"+str(i), "n"+str(i), random.choice(possible_cpu), random.choice(possible_mem)))
+        nodes.append(Node("n"+str(i), "n"+str(i), random.choice(possible_cpu),
+                          random.choice(possible_mem), random.choice(possible_bitrate)))
         
     return nodes
 
@@ -57,7 +60,8 @@ def get_all_simul_containers():
     possible_req_mem = range(100, 4000, 200)
     possible_apps = ["app1", "app2"]
     for i in range(1,7):
-        containers.append(Container("c"+str(i), "c"+str(i), random.choice(possible_apps), random.choice(possible_req_cpu), random.choice(possible_req_mem)))
+        containers.append(Container("c"+str(i), "c"+str(i), random.choice(possible_apps),
+                                    random.choice(possible_req_cpu), random.choice(possible_req_mem)))
         
     return containers
 
@@ -81,9 +85,19 @@ def get_nodes():
         cluster_nodes[node_name]['spec_cpu'] = float(node.status.allocatable['cpu'])
         cluster_nodes[node_name]['spec_memory'] = float(node.status.allocatable['memory'][:-2]) / 10**3
     
+    if os.path.exists('network_iperf_test.json'):
+        with open('network_iperf_test.json', 'r') as testfile:
+            net_bitrate = json.load(testfile)
+    else:
+        net_bitrate = get_network_bitrate()
+        
+    for node in net_bitrate:
+        cluster_nodes[node['node']]['bitrate'] = node['bitrate']
+        
     nodes = []
     for id, (name, info) in enumerate(cluster_nodes.items(), 1):
-        node = Node('n'+str(id), name, info['spec_cpu'], info['spec_memory'], info['used_cpu'], info['used_memory'])
+        node = Node('n'+str(id), name, info['spec_cpu'], info['spec_memory'],
+                    info.get('bitrate', 0), info['used_cpu'], info['used_memory'])
         nodes.append(node)
         
     return nodes
@@ -130,6 +144,7 @@ def pod_exec(name, namespace, command, api_instance):
 
 def get_network_bitrate():
     # bitrate (Gbits/sec) of each node to master
+    # run once when scheduler main loop is started. (before attemp to schedule pods)
     
     v1_a = client.CoreV1Api()
     v1_b = client.AppsV1Api()
@@ -170,4 +185,8 @@ def get_network_bitrate():
     v1_a.delete_namespaced_service(name=serv['metadata']['name'], namespace='default')
     v1_b.delete_namespaced_daemon_set(name=dmset['metadata']['name'], namespace='default')
     
-    return [{'node':n['node'], 'bitrate':n['bitrate']} for n in clients]
+    out = [{'node':n['node'], 'bitrate':n['bitrate']} for n in clients]
+    with open('network_iperf_test.json', 'w') as testfile:
+        json.dump(out, testfile)
+         
+    return out

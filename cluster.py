@@ -117,7 +117,6 @@ def pod_exec(name, namespace, command, api_instance):
     while resp.is_open():
         resp.update(timeout=1)
         if resp.peek_stdout():
-            # print(f"STDOUT: \n{resp.read_stdout()}")
             output = resp.read_stdout()
         if resp.peek_stderr():
             print(f"STDERR: \n{resp.read_stderr()}")
@@ -132,43 +131,43 @@ def pod_exec(name, namespace, command, api_instance):
 def get_network_bitrate():
     # bitrate (Gbits/sec) of each node to master
     
-    v1_a = client.AppsV1Api()
-    v1_b = client.CoreV1Api()
+    v1_a = client.CoreV1Api()
+    v1_b = client.AppsV1Api()
     with open('iperf3.yaml','r') as ymlfile:
         data = yaml.safe_load_all(ymlfile)
         dep, serv, dmset = data
         
-    v1_a.create_namespaced_deployment(body=dep, namespace='default')
-    v1_b.create_namespaced_service(body=serv, namespace='default')
-    v1_a.create_namespaced_daemon_set(body=dmset, namespace='default')
+    v1_b.create_namespaced_deployment(body=dep, namespace='default')
+    v1_a.create_namespaced_service(body=serv, namespace='default')
+    v1_b.create_namespaced_daemon_set(body=dmset, namespace='default')
     
-    time.sleep(2)
     clients = []
-    pod_items = v1_b.list_namespaced_pod('default').items
-    for pod in pod_items:
-        if pod.metadata.labels.get('app') == 'iperf3-client':
-            clients.append({'name':pod.metadata.name, 'node': pod.spec.node_name, 'ip':None})
+    while True:
+        check_ready = 0
+        pod_items = v1_a.list_namespaced_pod('default').items
+        for pod in pod_items:
+            if pod.metadata.labels.get('app') == 'iperf3-client' and pod.status.container_statuses:
+                if pod.status.container_statuses[0].ready:
+                    check_ready += 1
 
-    while not all([cli['ip'] for cli in clients]):
-        for pod in clients:
-            if not pod['ip']:
-                stat = v1_b.read_namespaced_pod(pod['name'], namespace='default')
-                if prob := stat.status.container_statuses:
-                    if prob[0].ready:
-                        pod['ip'] = stat.status.host_ip
+        if check_ready == len(v1_a.list_node().items)-1:
+            for pod in pod_items:
+                if pod.metadata.labels.get('app') == 'iperf3-client' and pod.status.container_statuses[0].ready:
+                    clients.append({'name':pod.metadata.name, 'node': pod.spec.node_name, 'ip':pod.status.host_ip})
+            break
 
     for cli in clients:
         cmd = f"iperf3 -c iperf3-server --json -T 'Client on {cli['ip']}'"
         while True:
             try:
-                output = json.loads(pod_exec(cli['name'], "default", cmd, v1_b))
+                output = json.loads(pod_exec(cli['name'], "default", cmd, v1_a))
                 break
             except:
                 pass
         cli['bitrate'] = output['end']['sum_received']['bits_per_second'] / 10**9  #Gbits/sec
         
-    v1_a.delete_namespaced_deployment(name=dep['metadata']['name'], namespace='default')
-    v1_b.delete_namespaced_service(name=serv['metadata']['name'], namespace='default')
-    v1_a.delete_namespaced_daemon_set(name=dmset['metadata']['name'], namespace='default')
+    v1_b.delete_namespaced_deployment(name=dep['metadata']['name'], namespace='default')
+    v1_a.delete_namespaced_service(name=serv['metadata']['name'], namespace='default')
+    v1_b.delete_namespaced_daemon_set(name=dmset['metadata']['name'], namespace='default')
     
     return [{'node':n['node'], 'bitrate':n['bitrate']} for n in clients]

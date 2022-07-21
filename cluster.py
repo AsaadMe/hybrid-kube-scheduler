@@ -2,10 +2,12 @@ from kubernetes import client, config
 from kubernetes.stream import stream
 
 from collections import defaultdict
+import requests
 import os.path
 import random
 import json
 import yaml
+import re
 
 try:
     config.load_incluster_config()
@@ -190,3 +192,23 @@ def get_network_bitrate():
         json.dump(out, testfile)
          
     return out
+
+def get_disk_volume():
+    # use only in topsis. not nsga.
+    
+    v1 = client.CoreV1Api()
+
+    pat_disk_total = re.compile(r'\nnode_filesystem_size_bytes.*mountpoint="/"} (.*)')   
+    pat_disk_free = re.compile(r'\nnode_filesystem_avail_bytes.*mountpoint="/"} (.*)')
+    
+    nodes = []
+    for pod in v1.list_namespaced_pod('monitoring').items:
+        nodes.append({'node':pod.spec.node_name,'ip':pod.status.pod_ip, 'disk_free':None, 'disk_total':None})
+        
+    for node in nodes:
+        metrics = requests.get(f"http://{node['ip']}:9100/metrics").text
+
+        node['disk_total'] = int(float(re.search(pat_disk_total, metrics).group(1))/10**9)
+        node['disk_free'] = int(float(re.search(pat_disk_free, metrics).group(1))/10**9)
+        
+    return nodes

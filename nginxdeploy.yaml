@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: nginx
 spec:
-  replicas: 3
+  replicas: 2
   selector:
     matchLabels:
       app: nginx
@@ -13,7 +13,7 @@ spec:
       labels:
         app: nginx
     spec:
-      schedulerName: newone
+      schedulerName: hybrid-scheduler
       containers:
       - name: nginx
         image: nginx
@@ -23,4 +23,4 @@ spec:
         resources:
           requests:
             memory: "100Mi"
-            cpu: "500m"
+            cpu: "200m"

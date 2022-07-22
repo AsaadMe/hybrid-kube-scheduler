@@ -15,12 +15,14 @@ except:
     config.load_kube_config()
     
 class Node:
-    def __init__(self, id, name, spec_cpu, spec_mem, bitrate, inuse_cpu=0, inuse_mem=0):
+    def __init__(self, id, name, spec_cpu, spec_mem, bitrate, disk_total, disk_free, inuse_cpu=0, inuse_mem=0):
         self.id = id
         self.name = name
         self.spec_cpu = spec_cpu
         self.spec_mem = spec_mem
         self.bitrate = bitrate # bitrate to master
+        self.disk_total = disk_total
+        self.disk_free = disk_free
         self.inuse_cpu = inuse_cpu    
         self.inuse_mem = inuse_mem
     
@@ -50,9 +52,11 @@ def get_all_simul_nodes():
     possible_cpu = range(1,9)
     possible_mem = [1000, 2000, 4000, 8000, 10000, 12000]
     possible_bitrate = [2, 5, 10, 15, 20, 30, 35]
+    possible_disk = [(10000,5000), (15000,5000), (8000,3000), (8000, 2000)]
     for i in range(1,6):
+        disk = random.choice(possible_disk)
         nodes.append(Node("n"+str(i), "n"+str(i), random.choice(possible_cpu),
-                          random.choice(possible_mem), random.choice(possible_bitrate)))
+                          random.choice(possible_mem), random.choice(possible_bitrate), disk[0], disk[1]))
         
     return nodes
 
@@ -95,6 +99,11 @@ def get_nodes():
         
     for node in net_bitrate:
         cluster_nodes[node['node']]['bitrate'] = node['bitrate']
+        
+    disk_vals = get_disk_volume()
+    for node in disk_vals:
+        cluster_nodes[node['node']]['disk_total'] = node['disk_total']
+        cluster_nodes[node['node']]['disk_free'] = node['disk_free']
         
     nodes = []
     for id, (name, info) in enumerate(cluster_nodes.items(), 1):
@@ -203,12 +212,15 @@ def get_disk_volume():
     
     nodes = []
     for pod in v1.list_namespaced_pod('monitoring').items:
-        nodes.append({'node':pod.spec.node_name,'ip':pod.status.pod_ip, 'disk_free':None, 'disk_total':None})
-        
-    for node in nodes:
-        metrics = requests.get(f"http://{node['ip']}:9100/metrics").text
+        nodes.append({'node':pod.spec.node_name,'ip':pod.status.pod_ip, 'disk_free':0, 'disk_total':0})
+    
+    try:    
+        for node in nodes:
+            metrics = requests.get(f"http://{node['ip']}:9100/metrics").text
 
-        node['disk_total'] = int(float(re.search(pat_disk_total, metrics).group(1))/10**9)
-        node['disk_free'] = int(float(re.search(pat_disk_free, metrics).group(1))/10**9)
+            node['disk_total'] = int(float(re.search(pat_disk_total, metrics).group(1))/10**9)
+            node['disk_free'] = int(float(re.search(pat_disk_free, metrics).group(1))/10**9)
+    except:
+        print('could not read disk values. returned zero.')
         
     return nodes

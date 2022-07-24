@@ -85,12 +85,14 @@ def get_nodes():
         cluster_nodes[node_name]['used_cpu'] = float(stats['usage']['cpu'][:-1]) / 10**9
         cluster_nodes[node_name]['used_memory'] = float(stats['usage']['memory'][:-2]) / 10**3
         
-        
+    control_plane_name = ''  
     for node in v1.list_node().items:
         node_name = node.status.addresses[1].address
         cluster_nodes[node_name]['spec_cpu'] = float(node.status.allocatable['cpu'])
         cluster_nodes[node_name]['spec_memory'] = float(node.status.allocatable['memory'][:-2]) / 10**3
-    
+        if node.metadata.labels.get('layer') == 'fog':
+            control_plane_name = node.status.addresses[1].address
+              
     if os.path.exists('network_iperf_test.json'):
         with open('network_iperf_test.json', 'r') as testfile:
             net_bitrate = json.load(testfile)
@@ -104,11 +106,13 @@ def get_nodes():
     for node in disk_vals:
         cluster_nodes[node['node']]['disk_total'] = node['disk_total']
         cluster_nodes[node['node']]['disk_free'] = node['disk_free']
-        
+    
+    cluster_nodes.pop(control_plane_name)    
     nodes = []
     for id, (name, info) in enumerate(cluster_nodes.items(), 1):
         node = Node('n'+str(id), name, info['spec_cpu'], info['spec_memory'],
-                    info.get('bitrate', 0), info['used_cpu'], info['used_memory'])
+                    info.get('bitrate', 0), info['disk_total'], info['disk_free'],
+                    info['used_cpu'], info['used_memory'])
         nodes.append(node)
         
     return nodes
@@ -119,7 +123,7 @@ def get_pending_containers():
     
     # cpu in mili, memory in Mi
     for id, pod in enumerate(v1.list_pod_for_all_namespaces().items, 1):
-        if pod.status.phase == 'Pending':
+        if pod.status.phase == 'Pending' and pod.spec.scheduler_name == 'hybrid-scheduler':
             pod_name = pod.metadata.name
             app_name = pod.metadata.labels['app']
             req_cpu = float(pod.spec.containers[0].resources.requests['cpu'][:-1]) / 1000

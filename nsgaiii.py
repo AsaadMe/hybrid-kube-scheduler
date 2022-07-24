@@ -17,13 +17,10 @@ rng = default_rng()
 
 from collections import Counter, defaultdict
 
-from cluster import get_all_simul_nodes, get_all_simul_containers
 
+nodes = None
+containers = None
 
-
-nodes = {n.id: n for n in get_all_simul_nodes()}
-containers = {c.id: c for c in get_all_simul_containers()}
-        
 def objective_1(x):
     x = x.replace('0','')
     count = Counter(x)
@@ -108,6 +105,12 @@ def objective_4(x):
 def objective_5(x):
     return x.count('0')
 
+def objective_6(x):
+    x = x.replace('0','')
+    count = Counter(x)
+    return sum([c*nodes['n'+n].bitrate for n,c in count.items()])
+            
+   
 def feasibility(x):
     constraint_violation = 0
     constraint_sum_cpu = 0
@@ -133,7 +136,7 @@ def feasibility(x):
 
 class MyProblem(ElementwiseProblem):
 
-    def __init__(self, n_characters=len(containers), **kargs):
+    def __init__(self, n_characters, **kargs):
         super().__init__(n_var=1, n_obj=5, n_constr=1)
         self.n_characters = n_characters
         self.ALPHABET = [str(c+1) for c in range(len(nodes))]
@@ -271,8 +274,40 @@ def record_generation_video(minimize_result):
             rec.record()
 
 
-def main():
-        
+def schedule(nds, contrs):
+    global nodes, containers
+    nodes = nds
+    containers = contrs  
+      
+    # (5, 6) = (M, p) = (n_obj, #of divisions) -> H = C(M+p-1, p)
+    ref_dirs = get_reference_directions("das-dennis", 5, n_partitions=6)
+    algorithm = NSGA3(pop_size=212,
+                    sampling=MySampling(),
+                    selection=get_selection('tournament', func_comp=mybinary_tournament),
+                    crossover=MyCrossover(),
+                    mutation=MyMutation(),
+                    eliminate_duplicates=MyDuplicateElimination(),
+                    ref_dirs=ref_dirs)
+  
+    res = minimize(MyProblem(n_characters=len(containers)),
+                algorithm,
+                ('n_gen', 100),
+                seed=1,
+                save_history=True,
+                return_least_infeasible=False,
+                verbose=False)
+
+    results = res.X[np.argsort(res.F[:, 0])]
+
+    return results[-1][0]
+
+def for_test():
+    from cluster import get_all_simul_nodes, get_all_simul_containers
+    
+    global nodes, containers
+    nodes = {n.id: n for n in get_all_simul_nodes()}
+    containers = {c.id: c for c in get_all_simul_containers()}  
+      
     # (5, 6) = (M, p) = (n_obj, #of divisions) -> H = C(M+p-1, p)
     ref_dirs = get_reference_directions("das-dennis", 5, n_partitions=6)
     algorithm = NSGA3(pop_size=212,
@@ -283,12 +318,13 @@ def main():
                     eliminate_duplicates=MyDuplicateElimination(),
                     ref_dirs=ref_dirs)
 
-    res = minimize(MyProblem(),
+    
+    res = minimize(MyProblem(n_characters=len(containers)),
                 algorithm,
                 ('n_gen', 100),
                 seed=1,
                 save_history=True,
-                return_least_infeasible=True,
+                return_least_infeasible=False,
                 verbose=False)
 
     Scatter(tight_layout=True).add(res.F, s=10).show()
@@ -302,5 +338,5 @@ def main():
     
     record_generation_video(res)
     
-if __name__ == "__main__":
-    main()
+if __name__ == '__main__':
+    for_test()

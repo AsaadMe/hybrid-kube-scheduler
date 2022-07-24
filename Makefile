@@ -1,7 +1,7 @@
 .PHONY: buildkind delkind
 
 buildkind:
-	kind create cluster --config kind-cluster-config.yml
+	kind create cluster --config kind-cluster-config.yml --image kindest/node:v1.21.12
 	kubectl create ns monitoring
 	kubectl label node kind-control-plane layer=fog
 	kind load docker-image networkstatic/iperf3

@@ -18,6 +18,12 @@ spec:
         component: hybrid-scheduler
         tier: control-plane
     spec:
+      nodeSelector:
+        layer: fog
+      tolerations:
+        - key: node-role.kubernetes.io/master
+          operator: Exists
+          effect: NoSchedule
       serviceAccountName: hybridscheduler-account
       containers:
       - image: ranhema/hybridscheduler:v1

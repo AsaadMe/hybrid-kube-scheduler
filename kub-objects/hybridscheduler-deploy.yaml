@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    component: hybrid-scheduler
+    tier: control-plane
+  name: hybrid-custom-scheduler
+  namespace: kube-system
+spec:
+  selector:
+    matchLabels:
+      component: hybrid-scheduler
+      tier: control-plane
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        component: hybrid-scheduler
+        tier: control-plane
+    spec:
+      serviceAccountName: hybridscheduler-account
+      containers:
+      - image: ranhema/hybridscheduler:v1
+        name: hybrid-custom-scheduler

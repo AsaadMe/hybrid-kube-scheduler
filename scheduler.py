@@ -15,15 +15,6 @@ except:
     
 v1 = client.CoreV1Api()
 
-def nodes_available():
-    ready_nodes = []
-    for n in v1.list_node().items:
-            for status in n.status.conditions:
-                if status.status == "True" and status.type == "Ready":
-                    ready_nodes.append(n.metadata.name)
-    return ready_nodes
-
-
 def schedule(name, node, scheduler_type, namespace='default'):
     target = client.V1ObjectReference(kind = 'Node', api_version = 'v1', name = node)
     meta = client.V1ObjectMeta(name = name)

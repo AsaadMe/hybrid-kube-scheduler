@@ -5,8 +5,9 @@ buildkind:
 	kubectl create ns monitoring
 	kubectl label node kind-control-plane layer=fog
 	kind load docker-image networkstatic/iperf3
-	kubectl apply -f metric-server.yaml
+	kubectl apply -f kub-objects/metric-server.yaml
 	kubectl apply -f node-exporter
+	kubectl apply -f kub-objects/rbac-scheduler.yaml
 
 delkind:
 	kind delete cluster

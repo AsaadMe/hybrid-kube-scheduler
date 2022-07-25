@@ -81,6 +81,7 @@ def main():
                     remain_pods = schedule_nsgaiii(pods_to_schedule)
                 except:
                     remain_pods = pods_to_schedule
+                pods_to_schedule = remain_pods
         else:
             pods_to_schedule = tmp_pods
             time.sleep(0.5)

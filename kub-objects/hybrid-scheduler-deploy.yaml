@@ -4,7 +4,7 @@ metadata:
   labels:
     component: hybrid-scheduler
     tier: control-plane
-  name: hybrid-custom-scheduler
+  name: hybrid-scheduler
   namespace: kube-system
 spec:
   selector:
@@ -24,7 +24,7 @@ spec:
         - key: node-role.kubernetes.io/master
           operator: Exists
           effect: NoSchedule
-      serviceAccountName: hybridscheduler-account
+      serviceAccountName: hybrid-scheduler-account
       containers:
-      - image: ranhema/hybridscheduler:v1
-        name: hybrid-custom-scheduler
+      - image: ranhema/hybrid-scheduler:v1
+        name: hybrid-scheduler

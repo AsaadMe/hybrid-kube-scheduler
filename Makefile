@@ -5,6 +5,8 @@ buildkind:
 	kubectl create ns monitoring
 	kubectl label node kind-control-plane layer=fog
 	kind load docker-image networkstatic/iperf3
+	kind load docker-image k8s.gcr.io/metrics-server/metrics-server:v0.6.1
+	kind load docker-image ranhema/hybrid-scheduler:v1
 	kubectl apply -f kub-objects/metric-server.yaml
 	kubectl apply -f node-exporter
 	kubectl apply -f kub-objects/rbac-scheduler.yaml

@@ -71,7 +71,7 @@ def get_all_simul_containers():
         
     return containers
 
-def get_nodes():
+def get_nodes(get_disk=True):
     v1 = client.CoreV1Api()
     cust = client.CustomObjectsApi()
 
@@ -102,16 +102,17 @@ def get_nodes():
     for node in net_bitrate:
         cluster_nodes[node['node']]['bitrate'] = node['bitrate']
         
-    disk_vals = get_disk_volume()
-    for node in disk_vals:
-        cluster_nodes[node['node']]['disk_total'] = node['disk_total']
-        cluster_nodes[node['node']]['disk_free'] = node['disk_free']
+    if get_disk:
+        disk_vals = get_disk_volume()
+        for node in disk_vals:
+            cluster_nodes[node['node']]['disk_total'] = node['disk_total']
+            cluster_nodes[node['node']]['disk_free'] = node['disk_free']
     
     cluster_nodes.pop(control_plane_name)    
     nodes = []
     for id, (name, info) in enumerate(cluster_nodes.items(), 1):
         node = Node('n'+str(id), name, info['spec_cpu'], info['spec_memory'],
-                    info.get('bitrate', 0), info['disk_total'], info['disk_free'],
+                    info.get('bitrate', 0), info.get('disk_total', 0), info.get('disk_free', 0),
                     info['used_cpu'], info['used_memory'])
         nodes.append(node)
         
@@ -163,7 +164,12 @@ def get_network_bitrate():
     
     v1_a = client.CoreV1Api()
     v1_b = client.AppsV1Api()
-    with open('iperf3.yaml','r') as ymlfile:
+    if os.path.exists('iperf3.yaml'):
+        iperf_yaml = 'iperf3.yaml'
+    elif os.path.exists('../kub-objects/iperf3.yaml'):
+        iperf_yaml = '../kub-objects/iperf3.yaml'
+        
+    with open(iperf_yaml, 'r') as ymlfile:
         data = yaml.safe_load_all(ymlfile)
         dep, serv, dmset = data
         

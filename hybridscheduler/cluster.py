@@ -47,25 +47,25 @@ class Container:
     def __repr__(self) -> str:
         return f"Container(ID: {self.id}, App: {self.app_name}, req: <{self.req_cpu}, {self.req_mem}>)"    
 
-def get_all_simul_nodes():
+def get_all_simul_nodes(n):
     nodes = []
     possible_cpu = range(1,9)
     possible_mem = [1000, 2000, 4000, 8000, 10000, 12000]
     possible_bitrate = [2, 5, 10, 15, 20, 30, 35]
     possible_disk = [(10000,5000), (15000,5000), (8000,3000), (8000, 2000)]
-    for i in range(1,6):
+    for i in range(1,n+1):
         disk = random.choice(possible_disk)
         nodes.append(Node("n"+str(i), "n"+str(i), random.choice(possible_cpu),
                           random.choice(possible_mem), random.choice(possible_bitrate), disk[0], disk[1]))
         
     return nodes
 
-def get_all_simul_containers():
+def get_all_simul_containers(n):
     containers = []
     possible_req_cpu = range(1,5)
     possible_req_mem = range(100, 4000, 200)
     possible_apps = ["app1", "app2"]
-    for i in range(1,7):
+    for i in range(1,n+1):
         containers.append(Container("c"+str(i), "c"+str(i), random.choice(possible_apps),
                                     random.choice(possible_req_cpu), random.choice(possible_req_mem)))
         

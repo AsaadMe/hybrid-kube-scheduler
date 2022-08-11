@@ -305,8 +305,8 @@ def for_test():
     from cluster import get_all_simul_nodes, get_all_simul_containers
     
     global nodes, containers
-    nodes = {n.id: n for n in get_all_simul_nodes()}
-    containers = {c.id: c for c in get_all_simul_containers()}  
+    nodes = {n.id: n for n in get_all_simul_nodes(5)}
+    containers = {c.id: c for c in get_all_simul_containers(6)}  
       
     # (5, 6) = (M, p) = (n_obj, #of divisions) -> H = C(M+p-1, p)
     ref_dirs = get_reference_directions("das-dennis", 5, n_partitions=6)

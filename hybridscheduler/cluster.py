@@ -10,10 +10,13 @@ import yaml
 import re
 
 try:
-    config.load_incluster_config()
+    try:
+        config.load_incluster_config()
+    except:
+        config.load_kube_config()
 except:
-    config.load_kube_config()
-    
+    pass    
+
 class Node:
     def __init__(self, id, name, spec_cpu, spec_mem, bitrate, disk_total, disk_free, inuse_cpu=0, inuse_mem=0):
         self.id = id

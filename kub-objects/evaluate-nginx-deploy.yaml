@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-a
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      app: nginx-a
+  template:
+    metadata:
+      name: nginx-a
+      labels:
+        app: nginx-a
+    spec:
+      schedulerName: hybrid-scheduler
+      containers:
+      - name: nginx
+        image: nginx:alpine
+        ports:
+        - name: http
+          containerPort: 80
+        resources:
+          requests:
+            memory: "100Mi"
+            cpu: "200m"
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-b
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: nginx-b
+  template:
+    metadata:
+      name: nginx-b
+      labels:
+        app: nginx-b
+    spec:
+      schedulerName: hybrid-scheduler
+      containers:
+      - name: nginx
+        image: nginx:alpine
+        ports:
+        - name: http
+          containerPort: 80
+        resources:
+          requests:
+            memory: "150Mi"
+            cpu: "350m"

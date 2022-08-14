@@ -143,7 +143,7 @@ class MyProblem(ElementwiseProblem):
 
     def _evaluate(self, X, out, *args, **kwargs):
         X = X[0]
-        all_objectives = [objective_1, objective_2, objective_3, objective_4, objective_5]
+        all_objectives = [objective_2, objective_3, objective_4, objective_5, objective_6]
         out["F"] = [obj_func(X) for obj_func in all_objectives]
         out["G"] = list(feasibility(X)[0:1])
         # print(X, [int(a) for a in out['F']], '|',list(feasibility(X)))
@@ -301,13 +301,13 @@ def schedule(nds, contrs):
 
     return results[-1][0]
 
-def for_test():
+def for_test(n_nodes, n_pods):
     from cluster import get_all_simul_nodes, get_all_simul_containers
     
     global nodes, containers
-    nodes = {n.id: n for n in get_all_simul_nodes(5)}
-    containers = {c.id: c for c in get_all_simul_containers(6)}  
-      
+    nodes = {n.id: n for n in get_all_simul_nodes(n_nodes)}
+    containers = {c.id: c for c in get_all_simul_containers(n_pods)}  
+
     # (5, 6) = (M, p) = (n_obj, #of divisions) -> H = C(M+p-1, p)
     ref_dirs = get_reference_directions("das-dennis", 5, n_partitions=6)
     algorithm = NSGA3(pop_size=212,
@@ -327,16 +327,17 @@ def for_test():
                 return_least_infeasible=False,
                 verbose=False)
 
-    Scatter(tight_layout=True).add(res.F, s=10).show()
+    # Scatter(tight_layout=True).add(res.F, s=10).show()
 
     results = res.X[np.argsort(res.F[:, 0])]
-    print(results)
-    print("Exec Time:", res.exec_time)
-
-    print(nodes)
-    print(containers)
+    # print(results)
+    # print("Exec Time:", res.exec_time)
+    # print(nodes)
+    # print(containers)
     
-    record_generation_video(res)
+    # record_generation_video(res)
+    return results[-1][0]
     
 if __name__ == '__main__':
-    for_test()
+    
+    for_test(5, 6)

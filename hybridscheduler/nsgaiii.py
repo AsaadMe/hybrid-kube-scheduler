@@ -108,7 +108,7 @@ def objective_5(x):
 def objective_6(x):
     x = x.replace('0','')
     count = Counter(x)
-    return sum([c*nodes['n'+n].bitrate for n,c in count.items()])
+    return -sum([c*nodes['n'+n].bitrate for n,c in count.items()])
             
    
 def feasibility(x):
@@ -144,6 +144,7 @@ class MyProblem(ElementwiseProblem):
     def _evaluate(self, X, out, *args, **kwargs):
         X = X[0]
         all_objectives = [objective_2, objective_3, objective_4, objective_5, objective_6]
+        # all_objectives = [objective_1, objective_2, objective_3, objective_4, objective_5]
         out["F"] = [obj_func(X) for obj_func in all_objectives]
         out["G"] = list(feasibility(X)[0:1])
         # print(X, [int(a) for a in out['F']], '|',list(feasibility(X)))
@@ -265,9 +266,9 @@ def record_generation_video(minimize_result):
 
         # for each algorithm object in the history
         for entry in minimize_result.history:
-            sc = Scatter(title=("Gen %s" % entry.n_gen))
-            sc.add(entry.pop.get("F"), s=10)
-            sc.add(entry.problem.pareto_front(), plot_type="line", color="black", alpha=0.7)
+            sc = Scatter(title=("Gen %s" % entry.n_gen), figsize=(15,15), tight_layout=True)
+            sc.add(entry.pop.get("F"), s=15)
+            # sc.add(entry.problem.pareto_front(), plot_type="line", color="black", alpha=0.7)
             sc.do()
 
             # finally record the current visualization to the video
@@ -293,13 +294,16 @@ def schedule(nds, contrs):
                 algorithm,
                 ('n_gen', 100),
                 seed=1,
-                save_history=True,
                 return_least_infeasible=False,
                 verbose=False)
 
     results = res.X[np.argsort(res.F[:, 0])]
-
     return results[-1][0]
+    
+    # middle = int(len(results)/2)
+    # to_test = [results[middle-1][0],results[middle][0],results[middle+1][0]]
+    # best = sorted(to_test, key=objective_5)[0]
+    # return best
 
 def for_test(n_nodes, n_pods):
     from cluster import get_all_simul_nodes, get_all_simul_containers
@@ -327,7 +331,7 @@ def for_test(n_nodes, n_pods):
                 return_least_infeasible=False,
                 verbose=False)
 
-    # Scatter(tight_layout=True).add(res.F, s=10).show()
+    # Scatter(tight_layout=False, figsize=(15,25)).add(res.F, s=10).show()
 
     results = res.X[np.argsort(res.F[:, 0])]
     # print(results)
@@ -337,6 +341,11 @@ def for_test(n_nodes, n_pods):
     
     # record_generation_video(res)
     return results[-1][0]
+    
+    # middle = int(len(results)/2)
+    # to_test = [results[middle-1][0],results[middle][0],results[middle+1][0]]
+    # best = sorted(to_test, key=objective_5)[0]
+    # return best
     
 if __name__ == '__main__':
     

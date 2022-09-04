@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: nginx-a
 spec:
-  replicas: 5
+  replicas: 4
   selector:
     matchLabels:
       app: nginx-a
@@ -22,8 +22,8 @@ spec:
           containerPort: 80
         resources:
           requests:
-            memory: "100Mi"
-            cpu: "200m"
+            memory: "60Mi"
+            cpu: "80m"
 
 ---
 
@@ -32,7 +32,7 @@ kind: Deployment
 metadata:
   name: nginx-b
 spec:
-  replicas: 4
+  replicas: 5
   selector:
     matchLabels:
       app: nginx-b
@@ -51,5 +51,5 @@ spec:
           containerPort: 80
         resources:
           requests:
-            memory: "150Mi"
-            cpu: "350m"
+            memory: "200Mi"
+            cpu: "150m"

@@ -101,7 +101,7 @@ def objective_5(x):
 def objective_6(x):
     x = x.replace('0','')
     count = Counter(x)
-    return sum([c*nodes['n'+n].bitrate for n,c in count.items()])
+    return -sum([c*nodes['n'+n].bitrate for n,c in count.items()])
 
 def get_containers():
     v1 = client.CoreV1Api()
@@ -280,7 +280,7 @@ def main():
     
     all_evals_nsgaiii = [[],[],[],[],[]]
     fail_count = 0
-    for j in range(5):
+    for j in range(50):
         # print(f'NSGAIII try {j}th test.', end='\r')
         try:
             st = nsgaiii.for_test(num_nodes, num_pods)

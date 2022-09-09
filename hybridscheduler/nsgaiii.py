@@ -1,6 +1,7 @@
-from pymoo.core.duplicate import ElementwiseDuplicateElimination
 from pymoo.factory import get_reference_directions, get_selection
+from pymoo.core.duplicate import ElementwiseDuplicateElimination
 from pymoo.operators.selection.tournament import compare
+from pymoo.mcdm.pseudo_weights import PseudoWeights
 from pymoo.core.problem import ElementwiseProblem
 from pymoo.visualization.scatter import Scatter
 from pymoo.algorithms.moo.nsga3 import NSGA3
@@ -8,8 +9,9 @@ from pymoo.core.crossover import Crossover
 from pymoo.core.sampling import Sampling
 from pymoo.core.mutation import Mutation
 from pymoo.optimize import minimize
-from pyrecorder.recorder import Recorder
+
 from pyrecorder.writers.video import Video
+from pyrecorder.recorder import Recorder
 
 import numpy as np
 from numpy.random import default_rng
@@ -144,10 +146,9 @@ class MyProblem(ElementwiseProblem):
     def _evaluate(self, X, out, *args, **kwargs):
         X = X[0]
         all_objectives = [objective_2, objective_3, objective_4, objective_5, objective_6]
-        # all_objectives = [objective_1, objective_2, objective_3, objective_4, objective_5]
+
         out["F"] = [obj_func(X) for obj_func in all_objectives]
         out["G"] = list(feasibility(X)[0:1])
-        # print(X, [int(a) for a in out['F']], '|',list(feasibility(X)))
         
 class MySampling(Sampling):
 
@@ -268,7 +269,6 @@ def record_generation_video(minimize_result):
         for entry in minimize_result.history:
             sc = Scatter(title=("Gen %s" % entry.n_gen), figsize=(15,15), tight_layout=True)
             sc.add(entry.pop.get("F"), s=15)
-            # sc.add(entry.problem.pareto_front(), plot_type="line", color="black", alpha=0.7)
             sc.do()
 
             # finally record the current visualization to the video
@@ -297,13 +297,16 @@ def schedule(nds, contrs):
                 return_least_infeasible=False,
                 verbose=False)
 
-    results = res.X[np.argsort(res.F[:, 0])]
-    return results[-1][0]
+    # results = res.X[np.argsort(res.F[:, 0])]
+    # return results[-1][0]
+
+    ref_dirs = get_reference_directions("das-dennis", 5, n_partitions=6)
+    F = res.F
+
+    weights = np.array([0.15, 0.15, 0.15, 0.4, 0.15])
+    a, _ = PseudoWeights(weights).do(F, return_pseudo_weights=True)
+    return res.X[a][0]
     
-    # middle = int(len(results)/2)
-    # to_test = [results[middle-1][0],results[middle][0],results[middle+1][0]]
-    # best = sorted(to_test, key=objective_5)[0]
-    # return best
 
 def for_test(n_nodes, n_pods):
     from cluster import get_all_simul_nodes, get_all_simul_containers
@@ -332,21 +335,19 @@ def for_test(n_nodes, n_pods):
                 verbose=False)
 
     # Scatter(tight_layout=False, figsize=(15,25)).add(res.F, s=10).show()
-
-    results = res.X[np.argsort(res.F[:, 0])]
+    # results = res.X[np.argsort(res.F[:, 0])]
     # print(results)
-    # print("Exec Time:", res.exec_time)
-    # print(nodes)
-    # print(containers)
-    
+    # print("Exec Time:", res.exec_time)    
     # record_generation_video(res)
-    return results[-1][0]
+    # return results[-1][0]
     
-    # middle = int(len(results)/2)
-    # to_test = [results[middle-1][0],results[middle][0],results[middle+1][0]]
-    # best = sorted(to_test, key=objective_5)[0]
-    # return best
-    
+    ref_dirs = get_reference_directions("das-dennis", 5, n_partitions=6)
+    F = res.F
+
+    weights = np.array([0.15, 0.15, 0.15, 0.4, 0.15])
+    a, _ = PseudoWeights(weights).do(F, return_pseudo_weights=True)
+    return res.X[a][0]
+
+       
 if __name__ == '__main__':
-    
     for_test(5, 6)

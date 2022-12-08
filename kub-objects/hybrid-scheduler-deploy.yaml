@@ -26,5 +26,5 @@ spec:
           effect: NoSchedule
       serviceAccountName: hybrid-scheduler-account
       containers:
-      - image: ranhema/hybrid-scheduler:v1
+      - image: hybrid-scheduler:v1
         name: hybrid-scheduler

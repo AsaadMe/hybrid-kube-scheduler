@@ -1,17 +1,17 @@
 # Kubernetes Hybrid Scheduler
 
-- This scheduler uses NSGA-III algorithm to select best nodes to place batch of pods into.
-- Pods with 3 or fewer replicas or the ones for which nsga couldn't find an optimal solution will be scheduled in serial by TOPSIS algorithm.
-- Scheduler.py uses Operator pattern to watch cluster state and system metrics.
-- Using metrics-server, prometheus node exporter and iperf3.
-- Results:
-  - Increased Availability, Reliability and Scalability of the system.
-  - Reduced power consumption of nodes and communication delay.
+- This scheduler uses the NSGA-III algorithm to select the best nodes on which to place a batch of pods.
+- Pods with three or fewer replicas, or those for which NSGA-III cannot find an optimal solution, are scheduled serially using the TOPSIS algorithm.
+- `Scheduler.py` follows the Operator pattern to monitor the cluster state and system metrics.
+- It relies on metrics-server, Prometheus Node Exporter, and iperf3 for data collection.
 
-<br/>
+### Results:
+  - Increased availability, reliability, and scalability of the system
+  - Reduced node power consumption and lower communication delay
 
-- Use KIND as local kubernetes cluster -> `make buildkind`
-- Use `schedulerName: hybrid-scheduler` and custom resources requests in pod configurations ([example](kub-objects/nginx-deploy.yaml)).
+### Usage:
+- Use KIND as a local Kubernetes cluster -> `make buildkind`
+- Specify `schedulerName: hybrid-scheduler` and define custom resource requests in pod configurations ([example](kub-objects/nginx-deploy.yaml)).
 
 <br/>
 
